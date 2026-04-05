@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/*     SD card fat directory     Liontakis Theodoulos                    */
+/*     Liontakis Theodoulos 2005  Simple .ym audio file player           */
 /*-----------------------------------------------------------------------*/
 #include "stdio.h"
 #include <qdos.h>
