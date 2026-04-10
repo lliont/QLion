@@ -1,5 +1,5 @@
 # QLion
-QLion Gold card for Sinclair QL
+Resources for the QLion Gold card for Sinclair QL
 
 The QXL.WIN file from WIN_image.zip in the Win_image directory must be written to a fresly FAT32 formatted HC SD card ( 4GB to 32GB partition ).
 
