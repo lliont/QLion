@@ -38,7 +38,7 @@ void main(int argc, char *argv[])
 
 	buffer=(char *) abuffer;
 	printf("Playing %s\n",argv[1]);
-	if (argc<3) { printf(" Usage:ew dplay;'filename frequency [mono]'\n"); return; }
+	if (argc<3) { printf(" Usage:ew dplay;'filename frequency'\n"); return; }
 	if (argc=4) { if (!strcmp("mono",argv[3])) mono=1; }
 	if ((ft=open(argv[1], O_RDONLY))==-1) { printf("Can't open source file ?\n"); return; }
 	br = 4096; i=1; 
