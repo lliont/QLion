@@ -1,4 +1,4 @@
-  /* int (*_readkbd)(chanid_t,timeout_t,char *) = myroutine; */
+/* Galaxian-ish game that uses hardware sprites of QLion card. Liontakis Theodoulos 2025 */
 
 #include "stdio.h"
 #include <qdos.h>
