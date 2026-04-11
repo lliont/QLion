@@ -87,9 +87,9 @@ tesp
 	   dc.w		4,'ESP1'
 	   dc.w     0
 alchp	   
-	   bsr.s   fetch           ; make sure receive fifo is empty
+	   bsr.s   fetch           
        beq.s   alchp
-       moveq   #0,d0           ; signal OK
+       moveq   #0,d0          
 	   move.b  d0,ispending
 
 	   moveq    #$18,d1
