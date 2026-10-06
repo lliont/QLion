@@ -67,9 +67,6 @@ ERR_BP
 	moveq    #ERR.BP,D0
 	rts
 	
-ispending	ds.b 1
-byteread    ds.b 1
-	
 open:
        move.w   IO.NAME,A4
 	   jsr      (a4)
@@ -86,47 +83,53 @@ tesp
 	   bra.s    alchp
 	   dc.w		4,'ESP1'
 	   dc.w     0
-alchp	   
-	   bsr.s   fetch           
-       beq.s   alchp
-       moveq   #0,d0          
-	   move.b  d0,ispending
+alchp
+	btst.b  #ESP_DR,ESP_STAT    ; drain receive fifo
+	beq.s   alc_go
+	move.b  ESP_INOUT,d1
+	move.b  #ESP_R,ESP_STAT
+	nop
+	move.b  #0,ESP_STAT
+	bra.s   alchp
+alc_go
+	moveq   #$1A,d1             ; $18 header + 2 state bytes
+	move.w  MM.ALCHP,a4
+	jsr     (a4)
+	tst.l   d0
+	bne.s   alc_ex
+	clr.w   $18(a0)             ; ispending=0, byteread=0
+alc_ex	rts
 
-	   moveq    #$18,d1
-       move.w   MM.ALCHP,a4
-	   JMP      (a4)
-	   
-notfnd moveq   #ERR.NF,d0
-        rts
-      
-          
-close   move.w  MM.RECHP,a2
-        jmp     (a2)
-          
-pendi   tst.b   ispending    
-        bne.s   pending        
-        moveq   #ERR.NC,d0      
-        btst.b  #ESP_DR,ESP_STAT    
-        beq.s   pexit        
-        move.b  #1,ispending   
-		move.b  ESP_INOUT,d1
-		move.b  #ESP_R,ESP_STAT
-		nop
-		move.b  #0,ESP_STAT
-        move.b  d1,byteread 
-        moveq   #0,d0          
-pexit   rts
+notfnd	moveq   #ERR.NF,d0
+	rts
 
-pending move.b  byteread,d1  
-        move.b  #0,d0           
-        rts
+close	move.w  MM.RECHP,a2
+	jmp     (a2)
 
-fetch   bsr     pendi           
-        bne.s   fexit     
-        move.b  #0,ispending    
-fexit:
-        tst.l   d0
-        rts                     
+* channel block: $18(a0) = ispending, $19(a0) = byteread
+pendi	tst.b   $18(a0)
+	bne.s   pending
+	moveq   #ERR.NC,d0
+	btst.b  #ESP_DR,ESP_STAT
+	beq.s   pexit
+	move.b  #1,$18(a0)
+	move.b  ESP_INOUT,d1
+	move.b  #ESP_R,ESP_STAT
+	nop
+	move.b  #0,ESP_STAT
+	move.b  d1,$19(a0)
+	moveq   #0,d0
+pexit	rts
+
+pending	move.b  $19(a0),d1
+	moveq   #0,d0               ; whole of d0, not just the low byte
+	rts
+
+fetch	bsr.s   pendi
+	bne.s   fexit
+	clr.b   $18(a0)
+fexit	tst.l   d0
+	rts              
 
 send    btst.b  #ESP_RD,ESP_STAT      
         beq.s   send_nc         
