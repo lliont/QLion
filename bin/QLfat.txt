@@ -1,0 +1,125 @@
+# SDAn_ — a FAT32 directory device driver for the QL (QLion Gold)
+
+Reads and writes FAT32 directly: files can be created, written, grown,
+truncated, overwritten, renamed (also into other directories) and
+deleted, and directories made and removed.
+
+LRESPR the binary and the card's FAT32 partitions appear as `SDA1_` to
+`SDA4_` (MBR partitions 1–4; `SDA1_` is the whole card if it has no
+partition table).
+
+## What works
+
+- Opening files (`OPEN_IN`, `OPEN`, `LOAD`, `LBYTES`, `EXEC`), byte, line
+  and string reads, `FS.LOAD` (whole sectors go straight to memory),
+  positioning, `FS.HEADR`, `FS.MDINF`, `FS.XINF`, `FS.DATE`, `FS.VERS`.
+- Directories, level-2 style: `_` separates directories, the longest
+  matching directory name wins, an exact match wins over everything.
+  `DIR sda1_games_`, `WDIR`, `DATA_USE sda1_games_` all behave as on a
+  WIN drive. Directory entries are full paths (`games_doom`), lengths
+  include the 64-byte header as QDOS programs expect, sub-directories
+  are type 255.
+- Long file names (LFN), read case-preserving. Matching ignores case
+  and treats `.` and `_` as equal, so `sda1_readme_txt` opens
+  `readme.txt`. Names longer than 36 characters are shown and opened by
+  their 8.3 alias (`BBBBBB~1.TXT`). Non-ASCII characters show as `?`.
+- 8.3 names honour the Windows lower-case flags (`big.bin`, not `BIG.BIN`).
+- **XTcc** executables: a file ending in `XTcc` + 4-byte dataspace (as
+  qdos-gcc/C68 write them) opens as type 1 with that dataspace, and the
+  8-byte trailer is hidden from reads and from the length.
+- FAT dates are converted to QL dates.
+- SDHC/SDXC (block addressed) and SDSC (byte addressed) cards. The card
+  is re-checked whenever an open finds no files open, so swapping
+  cards between uses is safe. Each sector read is retried once, and if
+  sector 0 cannot be read at mount the card is re-initialised first.
+
+## Writing (stages 1 and 2)
+
+- A file opened with `OPEN` (exclusive) can be written: `PRINT`, `PUT`,
+  `BPUT`, `FS.SAVE`, at any position you move to, and it grows as far
+  as the card has room. New clusters come from the FAT starting at the
+  next-free hint (wrapping round once). When the card is full the bytes
+  that fit are written and you get "drive full".
+- `OPEN_OVER` empties an existing file (its clusters are freed, and an
+  executable becomes a plain file); writing then starts from nothing.
+- `TRUNCATE` (`FS.TRNC`) cuts the file at the current position and frees
+  the clusters after it.
+- Empty files get their first cluster when written to.
+- Executables keep their XTcc trailer after the data. `FS.HEADS` with
+  type 1 makes a file executable (taking a cluster if the 8 bytes need
+  one), type 0 removes the trailer (freeing a cluster if it had one).
+- On close (and `FLUSH`/`FS.CHEK`) the directory entry gets the size,
+  first cluster, the time from `MT.RCLCK` (or the date set with
+  `FS.DATE`) and the archive bit. The FSInfo sector gets the new free
+  count and hint. The FAT sectors are written before anything else,
+  each to both FAT copies.
+- Writing is refused ("read only") on `OPEN_IN` channels, on files with
+  the read-only attribute (`OPEN_OVER` of one too), and on directories.
+  `OPEN_OVER` of a directory gives "in use".
+- `OPEN_NEW` of a file that exists gives "already exists", so `COPY`
+  asks "OK to overwrite?" and then uses `OPEN_OVER`, as SMSQ/E's COPY
+  does. `COPY_O` overwrites directly.
+
+## Creating, deleting, renaming (stage 3)
+
+- `OPEN_NEW` (and `OPEN_OVER` of a name that is not there) makes the
+  file, so `COPY`, `SBYTES`, `SAVE` and editors all work. The name goes
+  where the QL rule puts it: `sda1_games_new_file` goes into `games` if
+  that directory exists, as `new_file`.
+- Names are kept as typed, as long names (up to 36 characters, the QL
+  limit). Each also gets an 8.3 alias made the way Windows makes them:
+  `Mixed Case Name.Data` → `MIXEDC~1.DAT`, `plus+and,comma;eq=br[ack]` →
+  `PLUS_A~1`, and `~1` to `~99999` when names collide (`COLLID~9`,
+  `COLLI~10`). A name that is already a plain upper-case 8.3 name
+  (`NEWUPPER.TXT`) gets no long name entries.
+- Refused as bad names: `\ / : * ? " < > |`, control characters, the QL
+  characters above 126, a leading space, a trailing space or dot.
+- A full directory grows by a cleared cluster (the root too).
+- `DELETE` frees the clusters and marks the long name entries and the
+  8.3 entry deleted. A read-only file gives "read only", a directory
+  with anything in it gives "in use".
+- `RENAME` works within a directory and between directories of the same
+  drive, keeps the clusters, dates and attributes, and works on a file
+  that is still being written. Onto an existing name gives "already
+  exists"; to another drive or device gives "bad name".
+- `MAKE_DIR` makes a directory with `.` and `..` (`..` is 0 when the
+  parent is the root). Unlike DV3 on a WIN drive, it does not move
+  existing files whose names start with the directory's name into it.
+- Not done: renaming directories, and renaming to the same name in
+  another case (both give an error, nothing changes).
+
+The cache is 8 sectors, write-back. FAT and directory changes reach the
+card on close or flush, so pull the card only with no files open for
+writing.
+
+## The FIXEXE command
+
+Loading the driver also adds a SuperBASIC command for programs whose
+dataspace was lost on the way through a PC, a zip or an email:
+
+    FIXEXE sda1_games_lady_exe          asks for the dataspace
+    FIXEXE sda1_games_lady_exe,32768    sets it directly
+
+- The name can be given with or without quotes, or in a string
+  variable (`f$="sda1_prog_exe": FIXEXE f$`), the same rules as
+  Toolkit II commands.
+- The file must look like a QDOS program (a job header: `$4AFB` at
+  offset 6). If it does not, FIXEXE says so and changes nothing,
+  unless the dataspace is given on the command line.
+- When asking, it shows the program's job name (or the file name), and
+  the current dataspace if it already has one:
+
+      LadyBug dataspace? 8K
+      LadyBug dataspace is 8192, new value?
+
+  The answer is bytes (`12000`) or K (`8K`). An empty answer leaves the
+  file as it was.
+- It uses the standard set-header call, so it works on any drive: on
+  `SDAn_` it writes the XTcc trailer, on `WIN1_` it sets the QDOS file
+  header. No toolkit is needed.
+- The dataspace cannot be worked out from the program, so it has to
+  come from its documentation or an original copy. If unsure, too much
+  only wastes memory; too little can crash the program.
+
+
+
