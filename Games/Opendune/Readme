@@ -1,20 +1,116 @@
-Opendune adapted to Sinclair QL with QLion Card
+OpenDUNE for the Sinclair QL with the QLion Gold card
+=====================================================
 
-Ported using AI. 512x256 with 256 colors resolution, AY sound and digital samples, ps/2 mouse.
+This is a port of OpenDUNE, the open source re-creation of Westwood's
+Dune II, to the Sinclair QL fitted with a QLion Gold card. It uses the
+card's 256-colour screen, PS/2 mouse, digital sound and YM2149.
 
-About
------
-OpenDUNE is an open source re-creation of the popular game "Dune II",
- originally made by Westwood Studios, and released by Virgin Entertainment.
-It attempts to re-create the original game and apply modern technology to it
- to allow it to be run natively on most operating systems.
-
-OpenDUNE is licensed under the GNU General Public License version 2.0. For
- more information, see the COPYING file included with every release and source
- download of the game.
+OpenDUNE is licensed under the GNU General Public License version 2.
+This port is too; its full source is published alongside the program.
+It is not affiliated with Westwood Studios, Virgin or the owners of Dune II.
 
 
-Contact
--------
-The latest version of OpenDUNE is always available at:
-  http://www.opendune.org/
+What you need
+-------------
+
+* A Sinclair QL with a QLion Gold card, running Minerva.
+* A PS/2 mouse on the QLion card.
+* The data files from your own copy of DUNE II, version 1.07 (EU, US or
+  HitSquad release). They are NOT included and must not be shared:
+
+      ATRE.PAK    DUNE.PAK     ENGLISH.PAK  FINALE.PAK   HARK.PAK
+      HERC.PAK    INTRO.PAK    INTROVOC.PAK MENTAT.PAK   MERC.PAK
+      ORDOS.PAK   OVERLAY.PAK  SCENARIO.PAK SOUND.PAK    VOC.PAK
+      DUNE2.EXE
+
+  The EU release may also have FRENCH.PAK and GERMAN.PAK. Files of the
+  older version 1.0 mostly work but are not supported; the official
+  Westwood 1.07 patch updates them.
+
+* The DUNE II manual: like the original, the game asks a question from
+  it at certain points (copy protection).
+
+
+Installing
+----------
+
+1. Copy opendune and all the files listed above into one directory,
+   for example WIN1_DUNE2_ or SDA1_DUNE2_. Keep the dots in the file
+   names (DUNE.PAK, not DUNE_PAK).
+
+2. Make that directory the default data directory and start the game:
+
+      DATA_USE WIN1_DUNE2_
+      EW WIN1_DUNE2_opendune
+
+   No special data space is needed: the program allocates the memory
+   it uses from the QDOS heap while it runs.
+
+3. Do not load the Pointer Environment's mouse driver before starting:
+   the game reads the QLion mouse itself.
+
+Savegames, OPTIONS.CFG and DUNE.CFG are written to the same directory.
+
+
+Options (opendune.ini)
+----------------------
+
+An optional text file opendune.ini in the game directory can change some
+settings. The game finds it through DATA_USE, like all its other files, so
+DATA_USE must point to the game directory. All lines go under an
+[opendune] section:
+
+      [opendune]
+      mousespeed=130     mouse speed in percent (10 - 1000), default 130
+      music=0            AY music: 0 = off (default), 1 = on
+      musicvolume=60     music volume in percent (0 - 400), default 60
+      drumvolume=50      drum volume in percent of the music volume,
+                         default 50
+      showfps=0          1 = show screen updates per second, top left
+      hwcursor=0         1 = draw the mouse pointer with a QLion hardware
+                         sprite (smoother; moves in 2-pixel steps)
+      soundbuffer=16     sound effects and voices: 16 = 16 KB sample
+                         buffer (default; current QLion firmware and the
+                         standalone cores), 8 = 8 KB buffer (older QLion
+                         firmware), 0 = off. The standalone cores always
+                         use 16 KB.
+      soundvolume=100    volume of sound effects and voices in percent
+                         (0 - 100), default 100
+
+The standard OpenDUNE options (dune2_enhanced, debug_skip_dialogs ...)
+work as on other platforms.
+
+
+Controls
+--------
+
+Mouse as in the original game: left button selects and orders, right
+button cancels. Keyboard shortcuts work as usual (the first letter of a
+command); the cursor keys scroll the map.
+
+
+Hardware used
+-------------
+
+* Screen: QLion mode 33, 512x256 in 256 colours (RRRGGGBB) at $4C0000.
+  The 320x200 game screen is centred and converted from the game's
+  palette on the fly, so palette fades work without palette registers.
+* Mouse: QIMI-compatible registers, read by an external interrupt server.
+  With hwcursor=1 the pointer is shown with hardware sprites 0 and 1.
+* Sound effects and voices: 16 KB (or 8 KB, soundbuffer=8) stereo
+  sample buffer at $C04000.
+* Music (music=1): the game's MIDI music played on the YM2149 (3 voices).
+  The drums are played as samples on the sample buffer (they pause while
+  an effect or voice plays); with soundbuffer=0 they fall back to the YM
+  noise generator.
+* Timing: the QLion 1 MHz counter 1 ($800030).
+
+
+Building from source
+--------------------
+
+Cross-compiled on a PC with qdos-gcc:
+
+      make -f Makefile.ql
+
+Makefile.ql lists all QL-specific files at the top.
