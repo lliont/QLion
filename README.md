@@ -5,7 +5,8 @@ The QXL.WIN file from WIN_image.zip in the Win_image directory must be written t
 
 You'll find a Users Guide in the doc directory
 
-The latest and recommended firmware is 3.4 and the latest ROM file for the flash is the one that contains patched JS for 4MB and patched Minerva for microdrive/NET. 
+The latest and recommended firmware is 3.4 that is a lot faster, supports 90 sprites, 16K sample buffer and video base offset.  
+The latest ROM file for the flash is the one that contains patched JS for 4MB and patched Minerva for microdrive/NET without the screen flickering. 
 
 
 ![QLion Gold](https://github.com/user-attachments/assets/068718e4-98b5-4f7b-a557-45dae55bf14b)
