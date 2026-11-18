@@ -43,14 +43,15 @@ Installing
       DATA_USE WIN1_DUNE2_
       EW WIN1_DUNE2_opendune
 
-   No special data space is needed: the program allocates the memory
-   it uses from the QDOS heap while it runs.
+   Only a 1000 data space is needed if it is needed to use fixexe or another 
+   program to restore a lost header.
 
 3. Do not load the Pointer Environment's mouse driver before starting:
    the game reads the QLion mouse itself.
 
 Savegames, OPTIONS.CFG and DUNE.CFG are written to the same directory.
-
+I recommend a small volume for music and drums or dissable music for
+better sounding digital audio.
 
 Options (opendune.ini)
 ----------------------
